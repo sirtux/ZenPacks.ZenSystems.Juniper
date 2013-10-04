@@ -1,0 +1,48 @@
+#!/usr/bin/env perl
+
+# Copyright (C) 2011 Russell Dwarshuis, Merit Network, Inc.
+# Copyright 2013 Thomas Eichhorn, wirkbetrieb.net
+# This program can be used under the GNU General Public License version 2
+# You can find full information here: http://www.zenoss.com/oss
+
+# Get statistics about bgp peering session, based on the ethernet 
+# statistics script by Russell Dwarshuis for adva system. 
+# Can't use stock zenoss
+# zenperfsnmp because there does not seem to be a way to have the snmp
+# index be at other than the last part of the OID.
+
+
+my $ip = $ARGV[0];
+my $community = $ARGV[1];
+my $entityIndex = $ARGV[2];
+
+if (! ($ip && $community && $entityIndex+1)) {
+  print "FAIL\n";
+  exit 3;
+}
+
+my @o = `snmpget -Ov -Oq -v2c -c $community $ip 1.3.6.1.4.1.2636.5.1.1.2.6.2.1.10.$entityIndex.1.1  1.3.6.1.4.1.2636.5.1.1.2.6.2.1.7.$entityIndex.1.1 1.3.6.1.4.1.2636.5.1.1.2.6.2.1.8.$entityIndex.1.1`;
+
+my @a = `snmpget -Ov -Oq -v2c -c $community $ip 1.3.6.1.4.1.2636.5.1.1.2.6.2.1.10.$entityIndex.2.1  1.3.6.1.4.1.2636.5.1.1.2.6.2.1.7.$entityIndex.2.1 1.3.6.1.4.1.2636.5.1.1.2.6.2.1.8.$entityIndex.2.1`;
+
+if ($o[0] eq "No Such Instance currently exists at this OID\n" ) {
+  #print "OK|v4Out=0 v6Out=0 v4In=0 v6In=0 v4Accepted=0 v6Accepted=0\n";
+  $o[0]=0;
+  $o[1]=0;
+  $o[2]=0;
+  #exit 0;
+}
+
+if ($a[0] eq "No Such Instance currently exists at this OID\n" ) {
+  #print "OK|v4Out=0 v6Out=0 v4In=0 v6In=0 v4Accepted=0 v6Accepted=0\n";
+  $a[0]=0;
+  $a[1]=0;
+  $a[2]=0;
+  #exit 0;
+}
+
+map { chomp; s/\"//g } @o;
+map { chomp; s/\"//g } @a;
+
+print "OK|v4Out=$o[0] v6Out=$a[0] v4In=$o[1] v6In=$a[1] v4Accepted=$o[2] v6Accepted=$a[2]\n";
+exit 0;
