@@ -35,6 +35,7 @@ class JuniperBGPMap(SnmpPlugin):
                         '.1.1.1.11':  'bgpRemoteAddress',
                         '.1.1.1.13':  'bgpRemoteASN',
                         '.4.1.1.1': 'bgpLastUpDown',
+			'.1.1.1.14': 'jnxBgpM2PeerIndex',
                     }
         ),
     )
@@ -64,7 +65,9 @@ class JuniperBGPMap(SnmpPlugin):
 		om.bgpRemoteAddress = self.hexToIp(om.bgpRemoteAddress)
                 tempname = om.bgpLocalAddress.replace(' ','_')
                 tempname = tempname.replace('.','_')
-                om.id = self.prepId( tempname + '_' + str( om.snmpindex.replace('.','_') ) )
+		om.id = self.prepId(om.snmpindex)
+		om.snmpindex = om.jnxBgpM2PeerIndex
+                #om.id = self.prepId( tempname + '_' + str( om.snmpindex.replace('.','_') ) )
             except (KeyError, IndexError, AttributeError, TypeError), errorInfo:
                 log.warn( ' Error in %s modeler plugin %s' % ( self.name(), errorInfo))
                 continue
