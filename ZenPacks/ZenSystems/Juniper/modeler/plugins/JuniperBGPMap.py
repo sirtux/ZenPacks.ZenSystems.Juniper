@@ -15,7 +15,7 @@ __doc__ = """JuniperBGPMap
 Gather table information from Juniper BGP tables
 """
 
-import re
+import re,ipaddr
 from Products.DataCollector.plugins.CollectorPlugin import SnmpPlugin, GetMap, GetTableMap
 
 class JuniperBGPMap(SnmpPlugin):
@@ -27,14 +27,14 @@ class JuniperBGPMap(SnmpPlugin):
 
     snmpGetTableMaps = (
         GetTableMap('jnxBgpM2PeerTable',
-#                    '.1.3.6.1.4.1.2636.5.1.1.2.1.1.1',
-                    '.1.3.6.1.2.1.15.3.1',
+                    '.1.3.6.1.4.1.2636.5.1.1.2',
+#                    '.1.3.6.1.2.1.15.3.1',
                     {
-                        '.2':  'bgpStateInt',
-                        '.5':  'bgpLocalAddress',
-                        '.7':  'bgpRemoteAddress',
-                        '.9':  'bgpRemoteASN',
-                        '.16': 'bgpLastUpDown',
+                        '.1.1.1.2':  'bgpStateInt',
+                        '.1.1.1.7':  'bgpLocalAddress',
+                        '.1.1.1.11':  'bgpRemoteAddress',
+                        '.1.1.1.13':  'bgpRemoteASN',
+                        '.4.1.1.1': 'bgpLastUpDown',
                     }
         ),
     )
@@ -60,6 +60,8 @@ class JuniperBGPMap(SnmpPlugin):
                 om.bgpStateText = self.operatingStateLookup[om.bgpStateInt]
                 om.bgpLastUpDown = om.bgpLastUpDown / 60 / 60 / 24
                 om.snmpindex = oid.strip('.')
+		om.bgpLocalAddress = self.hexToIp(om.bgpLocalAddress)
+		om.bgpRemoteAddress = self.hexToIp(om.bgpRemoteAddress)
                 tempname = om.bgpLocalAddress.replace(' ','_')
                 tempname = tempname.replace('.','_')
                 om.id = self.prepId( tempname + '_' + str( om.snmpindex.replace('.','_') ) )
@@ -73,10 +75,33 @@ class JuniperBGPMap(SnmpPlugin):
 
     def hexToIp(self,hexAddr):
         ipAddr=[]
-        hexAddrList = hexAddr.split(' ')
-        for i in hexAddrList:
-            ipAddr.append(str(int(i,16)))
-        return '.'.join(ipAddr)
+        #hexAddrList = hexAddr.split(' ')
+        if len(hexAddr)==4:
+		for i in hexAddr:
+	    		ipAddr.append(str(ord(i)))
+            		#ipAddr.append(str(int(i,16)))
+        	return '.'.join(ipAddr)
+	else:
+		for i in hexAddr:
+                        ipAddr.append(str(hex(int(str(ord(i))))))
+		v6Addr = ""
+		colon = False
+		position = 0
+		for byte in ipAddr:
+			position = position + 1
+			byte = byte.replace("0x","")
+			if len(byte)==1:
+				byte="0"+byte
+			v6Addr = v6Addr + byte
+			if colon == False:
+				colon = True
+			else:
+				colon = False
+				if position < 15:
+					v6Addr = v6Addr + ":"
+			
+		ip = ipaddr.IPv6Address(v6Addr)
+                return str(ip)
 
     def binaryToIp(self, binAddr):
         ipAddr = []
